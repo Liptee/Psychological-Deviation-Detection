@@ -1,7 +1,7 @@
 import cv2
 import mediapipe
 
-import utils.settings as settings
+import tools.utils.settings as settings
 from tools.utils.drawing import drawing_on_frame
 from tools.utils.saver import write_line_in_csv, add_data_in_row, init_csv_file
 
@@ -57,5 +57,3 @@ def record_data(output_file, num_frames=100, pose_landmarks=False, face_landmark
             cv2.imshow('Raw Webcam Feed', frame)
             if cv2.waitKey(10) & 0xFF == ord('q'):
                 break
-
-record_data("output.csv", pose_landmarks=True, right_hand_landmarks=True)

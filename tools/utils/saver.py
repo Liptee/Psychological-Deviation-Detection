@@ -1,3 +1,4 @@
+import os
 import csv
 import numpy as np
 
@@ -19,3 +20,7 @@ def init_csv_file(output_file, num_params):
         with open(output_file, 'w', newline='') as file:
             writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
             writer.writerow(landmarks)
+
+def make_dir_if_not_exist(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
