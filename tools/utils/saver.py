@@ -14,7 +14,7 @@ def add_data_in_row(row, results):
 
 def init_csv_file(output_file, num_params):
     landmarks = ['class']
-    for val in range(1, num_params + 1):
+    for val in range(1, num_params//4 + 1):
         landmarks += [f'x{val}', f'y{val}', f'z{val}', f'v{val}']
 
         with open(output_file, 'w', newline='') as file:

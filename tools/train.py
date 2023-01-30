@@ -18,6 +18,7 @@ def train(data_file: str, pipelines:dict, test_size: float = 0.5, random_state: 
 
     x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state = random_state)
     
+    print(x_train)
     for algo, pipeline in pipelines.items():
         model_file_name = f"{file_name}_{algo}.pkl"
         model = pipeline.fit(x_train, y_train)

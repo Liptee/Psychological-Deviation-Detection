@@ -4,13 +4,15 @@ from sklearn.pipeline import make_pipeline
 
 from tools.record_data import record_data
 from tools.train import train
+from tools.realtime_detect import realtime_detect
 
 
-# record_data("emotion", num_frames=200, face_landmarks=True)
+#record_data("guest.csv", num_frames=100, face_landmarks=False, right_hand_landmarks=True)
 
-# pipelines = {
-#     'RFC':make_pipeline(StandardScaler(), RandomForestClassifier()),
-#     'GBC':make_pipeline(StandardScaler(), GradientBoostingClassifier())
-# }
+pipelines = {
+    'RFC':make_pipeline(StandardScaler(), RandomForestClassifier()),
+    'GBC':make_pipeline(StandardScaler(), GradientBoostingClassifier())
+}
 
-# train("emotion.csv", pipelines, test=True)
+#train("guest.csv", pipelines, test=True)
+realtime_detect("models/guest_GBC.pkl", right_hand_landmarks=True)
