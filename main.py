@@ -3,8 +3,9 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import make_pipeline
 
 from tools.record_data import record_data
-from tools.train import train
-from tools.realtime_detect import realtime_detect
+from tools.train import train, train_timelaps
+from tools.realtime_detect import realtime_detect, realtime_detect_in_timelaps
+
 
 memory = {}
 command = ""
@@ -45,17 +46,72 @@ while command != "q":
 
     if command == "detect":
         model_name = input("Enter a model name: ")
+        filename = model_name.split("_")[0]
 
-        if input("Face landmarks? (y/n): ") == "y":
-            face_landmarks = True
-        else: face_landmarks = False
-        if input("Pose landmarks? (y/n): ") == "y": 
-            pose_landmarks = True
-        else: pose_landmarks = False
-        if input("right hand landmarks? (y/n): ") == "y":
-            right_hand_landmarks = True
-        else: right_hand_landmarks = False
-        if input("left hand landmarks? (y/n): ") == "y":
-            left_hand_landmarks = True
-        else: left_hand_landmarks = False
-        realtime_detect(f"models/{model_name}.pkl", face_landmarks=face_landmarks, pose_landmarks=pose_landmarks, right_hand_landmarks=right_hand_landmarks, left_hand_landmarks=left_hand_landmarks)
+        if not filename in memory:
+            memory[filename] = []
+            if input("Face landmarks? (y/n): ") == "y":
+                face_landmarks = True
+            else: face_landmarks = False
+            memory[filename].append(face_landmarks)
+            if input("Pose landmarks? (y/n): ") == "y": 
+                pose_landmarks = True
+            else: pose_landmarks = False
+            memory[filename].append(pose_landmarks)
+            if input("right hand landmarks? (y/n): ") == "y":
+                right_hand_landmarks = True
+            else: right_hand_landmarks = False
+            memory[filename].append(right_hand_landmarks)
+            if input("left hand landmarks? (y/n): ") == "y":
+                left_hand_landmarks = True
+            else: left_hand_landmarks = False
+            memory[filename].append(left_hand_landmarks)
+        
+        realtime_detect(f"models/{model_name}.pkl", face_landmarks=memory[filename][0], pose_landmarks=memory[filename][1], right_hand_landmarks=memory[filename][2], left_hand_landmarks=memory[filename][3])
+
+    if command == "realtime_train":
+        filename = input("Enter a filename: ")
+        pipelines = {
+            'RFC':make_pipeline(StandardScaler(), RandomForestClassifier()),
+            'GBC':make_pipeline(StandardScaler(), GradientBoostingClassifier())
+        }
+        neighbors = []
+        while True:
+            neighbor = input("Enter number of neighbors: ")
+            try:
+                neighbors.append(int(neighbor))
+            except:
+                break
+        test_size = float(input("Enter a test size: "))
+        train_timelaps(f"{filename}.csv", pipelines, test=True, test_size=test_size, num_neighboor_frames=neighbors)
+
+    if command == "realtime_detect":
+        model_name = input("Enter a model name: ")
+        filename = model_name.split("_")[1]
+        if not filename in memory:
+            memory[filename] = []
+            if input("Face landmarks? (y/n): ") == "y":
+                face_landmarks = True
+            else: face_landmarks = False
+            memory[filename].append(face_landmarks)
+            if input("Pose landmarks? (y/n): ") == "y": 
+                pose_landmarks = True
+            else: pose_landmarks = False
+            memory[filename].append(pose_landmarks)
+            if input("right hand landmarks? (y/n): ") == "y":
+                right_hand_landmarks = True
+            else: right_hand_landmarks = False
+            memory[filename].append(right_hand_landmarks)
+            if input("left hand landmarks? (y/n): ") == "y":
+                left_hand_landmarks = True
+            else: left_hand_landmarks = False
+            memory[filename].append(left_hand_landmarks)
+
+        neighbors = []
+        while True:
+            neighbor = input("Enter number of neighbors: ")
+            try:
+                neighbors.append(int(neighbor))
+            except:
+                break
+        realtime_detect_in_timelaps(f"models/{model_name}.pkl", face_landmarks=memory[filename][0], pose_landmarks=memory[filename][1], right_hand_landmarks=memory[filename][2], left_hand_landmarks=memory[filename][3], num_neighboor_frames=neighbors)
