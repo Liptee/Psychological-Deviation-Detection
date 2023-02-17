@@ -8,7 +8,33 @@ from tools.utils.saver import write_line_in_csv, add_data_in_row, init_csv_file
 mp_drawing = mediapipe.solutions.drawing_utils
 mp_holistic = mediapipe.solutions.holistic
 
-def record_data(output_file, num_frames=100, pose_landmarks=False, face_landmarks=False, left_hand_landmarks=False, right_hand_landmarks=False):
+def record_data(output_file: str, num_frames: int, pose_landmarks: bool, face_landmarks: bool, left_hand_landmarks: bool, right_hand_landmarks: bool):
+    """
+        This function extracts from webcam frames Action Units and 
+        write them into csv file. Also this code require to label frame for every 
+        launch.
+
+        Parameters:
+            output_file: str
+            Name for resulting csv file.
+
+            num_frames: int
+            How much samples of data you wanna create in csv file.
+            It doesn't tell function how long continue record, but how much
+            samples of correct data will be in csv file
+
+            pose_landmarks: bool
+            Write pose landmarks or don't
+
+            face_landmarks: bool
+            Write face landmarks or don't
+            
+            left_hand_landmarks: bool
+            Write left hand landmarks or don't
+
+            right_hand_landmarks: bool
+            Write right hand landmarks or don't
+    """
     num_params = 0
     if pose_landmarks:
         num_params += settings.POSE_PARAMS
