@@ -10,7 +10,7 @@ from albumentations.pytorch import ToTensorV2
 import settings
 from gaze_tracking.model import Model
 from gaze_tracking.mpii_face_gaze_preprocessing import normalize_single_image
-from gaze_tracking.utils import get_face_landmarks_in_ccs, gaze_2d_to_3d, ray_plane_intersection, plane_equation
+from gaze_tracking.utils import get_face_landmarks_in_ccs, gaze_2d_to_3d
 
 face_model_all: np.ndarray = np.array([
     [0.000000, -3.406404, 5.979507],
@@ -492,7 +492,13 @@ face_model = np.asarray([face_model_all[i] for i in landmarks_ids])
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-def return_distances_gaze_tracker(video_file):
+def gaze_tracker(video_file, distances=False, vectors=False, frames=None):
+    if distances and vectors:
+        raise ValueError("Choose only one option: distances = True or vectors = True")
+
+    if frames == None and video_file == 0:
+        raise ValueError("If you want get frames from web cam, choose nums of frames with parameters `frames: int` in gaze_tracker function")
+
     model = Model.load_from_checkpoint("gaze_tracking/p00.ckpt").to(device)
     model.eval()
     smoothing_buffer = collections.deque(maxlen=3)
@@ -509,14 +515,15 @@ def return_distances_gaze_tracker(video_file):
     ])
 
     pre_gaze_vector = [0.0, 0.0, 0.0]
-    pre_result = [0.0, 0.0, 0.0]
 
     #read video with cv2
     cap = cv2.VideoCapture(video_file)
     count = 0
-    distances = {}
+    result = {}
     while cap.isOpened():
         try:
+            if count == frames:
+                break
             ret, frame = cap.read()
             height, width, _ = frame.shape
             image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -566,9 +573,17 @@ def return_distances_gaze_tracker(video_file):
                 gaze_vector_buffer.append(gaze_vector)
                 
                 gaze_vector = np.asarray(gaze_vector_buffer).mean(axis=0)
-                distances[count] = distance(gaze_vector, pre_gaze_vector)
-                count+=1
-                pre_gaze_vector = gaze_vector
-                
+                if vectors:
+                    result[count] = gaze_vector
+
+                if distances:
+                    result[count] = distance(gaze_vector, pre_gaze_vector)
+                    print(result[count])
+                    pre_gaze_vector = gaze_vector
+    
+                count+=1       
+
         except:
-            return distances
+            pass
+
+    return result

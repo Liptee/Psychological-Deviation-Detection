@@ -1,4 +1,4 @@
-from gaze_tracking.main import return_distances_gaze_tracker
+from gaze_tracking.main import gaze_tracker
 
-results = return_distances_gaze_tracker("v_ApplyEyeMakeup_g01_c06.avi")
+results = gaze_tracker(0, vectors=False, distances=True, frames=50)
 print(results)
