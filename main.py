@@ -13,6 +13,7 @@ while command != "q":
     command = input("Enter a command: ")
     if command == "record":
         filename = input("Enter a filename: ")
+        cut_pose = False
         if not filename in memory:
             memory[filename] = []
             if input("Face landmarks? (y/n): ") == "y":
@@ -21,6 +22,8 @@ while command != "q":
             memory[filename].append(face_landmarks)
             if input("Pose landmarks? (y/n): ") == "y": 
                 pose_landmarks = True
+                if input("Do you want use cutting version? (y/n): ") == "y":
+                    cut_pose = True
             else: pose_landmarks = False
             memory[filename].append(pose_landmarks)
             if input("right hand landmarks? (y/n): ") == "y":
@@ -33,7 +36,7 @@ while command != "q":
             memory[filename].append(left_hand_landmarks)
 
         num_frames = int(input("Enter number of frames: "))
-        record_data(f"{filename}.csv", num_frames=num_frames, face_landmarks=memory[filename][0], pose_landmarks=memory[filename][1], right_hand_landmarks=memory[filename][2], left_hand_landmarks=memory[filename][3])
+        record_data(f"{filename}.csv", num_frames=num_frames, face_landmarks=memory[filename][0], pose_landmarks=memory[filename][1], right_hand_landmarks=memory[filename][2], left_hand_landmarks=memory[filename][3], pose_cut=cut_pose)
 
     if command == "train":
         filename = input("Enter a filename: ")
@@ -124,6 +127,7 @@ while command != "q":
     if command == "anomaly":
         model_name = input("Enter a model name: ")
         filename = model_name.split("_")[0]
+        cut_pose = False
 
         if not filename in memory:
             memory[filename] = []
@@ -133,6 +137,8 @@ while command != "q":
             memory[filename].append(face_landmarks)
             if input("Pose landmarks? (y/n): ") == "y": 
                 pose_landmarks = True
+                if input("Do you want use cutting version? (y/n): ") == "y":
+                    cut_pose = True
             else: pose_landmarks = False
             memory[filename].append(pose_landmarks)
             if input("right hand landmarks? (y/n): ") == "y":
@@ -144,4 +150,4 @@ while command != "q":
             else: left_hand_landmarks = False
             memory[filename].append(left_hand_landmarks)
         
-        realtime_anomaly_detect(f"models/{model_name}.pkl", face_landmarks=memory[filename][0], pose_landmarks=memory[filename][1], right_hand_landmarks=memory[filename][2], left_hand_landmarks=memory[filename][3])
+        realtime_anomaly_detect(f"models/{model_name}.pkl", face_landmarks=memory[filename][0], pose_landmarks=memory[filename][1], right_hand_landmarks=memory[filename][2], left_hand_landmarks=memory[filename][3], cut_pose=cut_pose)

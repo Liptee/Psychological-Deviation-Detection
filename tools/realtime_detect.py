@@ -120,7 +120,7 @@ def realtime_detect_in_timelaps(model_file: str, num_neighboor_frames: list = [-
             if cv2.waitKey(10) & 0xFF == ord('q'):
                 break
 
-def realtime_anomaly_detect(model_file: str, pose_landmarks=False, face_landmarks=False, left_hand_landmarks=False, right_hand_landmarks=False):
+def realtime_anomaly_detect(model_file: str, pose_landmarks=False, face_landmarks=False, left_hand_landmarks=False, right_hand_landmarks=False, cut_pose = False):
     with open(model_file, 'rb') as f:
         model = pickle.load(f)
 
@@ -133,6 +133,8 @@ def realtime_anomaly_detect(model_file: str, pose_landmarks=False, face_landmark
         num_params += settings.HAND_PARAMS
     if right_hand_landmarks:
         num_params += settings.HAND_PARAMS
+    if cut_pose and pose_landmarks:
+        num_params -= settings.FACE_PARAMS_IN_POSE
     x = np.zeros((num_params))
 
     with mp_holistic.Holistic() as holistic:
@@ -143,6 +145,9 @@ def realtime_anomaly_detect(model_file: str, pose_landmarks=False, face_landmark
             row = []
             if results.pose_landmarks and pose_landmarks:
                 row = add_data_in_row(row, results.pose_landmarks.landmark)
+                if cut_pose:
+                    row = row[settings.FACE_PARAMS_IN_POSE:]
+                    print(len(row))
 
             if results.face_landmarks and face_landmarks:
                 row = add_data_in_row(row, results.face_landmarks.landmark)

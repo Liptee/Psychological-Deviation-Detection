@@ -8,7 +8,7 @@ from tools.utils.saver import write_line_in_csv, add_data_in_row, init_csv_file
 mp_drawing = mediapipe.solutions.drawing_utils
 mp_holistic = mediapipe.solutions.holistic
 
-def record_data(output_file: str, num_frames: int, pose_landmarks: bool, face_landmarks: bool, left_hand_landmarks: bool, right_hand_landmarks: bool):
+def record_data(output_file: str, num_frames: int, pose_landmarks: bool, face_landmarks: bool, left_hand_landmarks: bool, right_hand_landmarks: bool, pose_cut: bool = False):
     """
         This function extracts from webcam frames Action Units and 
         write them into csv file. Also this code require to label frame for every 
@@ -44,6 +44,8 @@ def record_data(output_file: str, num_frames: int, pose_landmarks: bool, face_la
         num_params += settings.HAND_PARAMS
     if right_hand_landmarks:
         num_params += settings.HAND_PARAMS
+    if pose_cut and pose_landmarks:
+        num_params -= settings.FACE_PARAMS_IN_POSE
 
     #check if the file exists
     try:
@@ -62,10 +64,13 @@ def record_data(output_file: str, num_frames: int, pose_landmarks: bool, face_la
             if results.pose_landmarks and pose_landmarks:
                 frame = drawing_on_frame(frame, results.pose_landmarks, (0, 255, 0), mp_holistic.POSE_CONNECTIONS)
                 row = add_data_in_row(row, results.pose_landmarks.landmark)
+                if pose_cut:
+                    row = row[settings.FACE_PARAMS_IN_POSE:]
 
             if results.face_landmarks and face_landmarks:
                 frame = drawing_on_frame(frame, results.face_landmarks, (255, 0, 0), mp_holistic.FACEMESH_TESSELATION)
                 row = add_data_in_row(row, results.face_landmarks.landmark)
+                
 
             if results.left_hand_landmarks and left_hand_landmarks:
                 frame = drawing_on_frame(frame, results.left_hand_landmarks, (0, 0, 255), mp_holistic.HAND_CONNECTIONS)
