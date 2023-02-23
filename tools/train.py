@@ -34,6 +34,7 @@ def train(data_file: str, pipelines:dict, test_size: float = 0.5, random_state: 
 
         with open(f"models/{model_file_name}", "wb") as f:
             pickle.dump(model, f)
+# -------------------------------------------------------------------------------------------------------------------------
 
 def train_timelaps(data_file: str, pipelines: dict, num_neighboor_frames: list = [-3, -1], test_size: float = 0.1, random_state: int = 42, test: bool = False):
     file_name = data_file.split('.')[0].split('/')[-1]
@@ -67,7 +68,7 @@ def train_timelaps(data_file: str, pipelines: dict, num_neighboor_frames: list =
 
         with open(f"models/timelaps_{model_file_name}", "wb") as f:
             pickle.dump(model, f)
-
+# -------------------------------------------------------------------------------------------------------------------------
 
 def autoencoder(data_file: str, epochs: int, train_size: float = 0.9, autoencoder=Autoencoder_ver1, hidden_size:int = 64, learning_rate=1e-3, batch_size: int = 32):
     file_name = data_file.split('.')[0].split('/')[-1]
@@ -116,6 +117,7 @@ def autoencoder(data_file: str, epochs: int, train_size: float = 0.9, autoencode
 
     with open(f"models/autoencoder_{file_name}.pkl", "wb") as f:
         pickle.dump(model, f)
+# -------------------------------------------------------------------------------------------------------------------------
 
 def autoencode_timelaps(data_file: str, 
                         epochs: int, 
@@ -185,6 +187,3 @@ def autoencode_timelaps(data_file: str,
 
     with open(f"models/autotime_{file_name}.pkl", "wb") as f:
         pickle.dump(model, f)
-
-if __name__ == "__main__":
-    autoencode_timelaps("sit_pose.csv", 10)

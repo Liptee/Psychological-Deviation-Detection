@@ -1,5 +1,6 @@
 import cv2
 import mediapipe
+from tqdm import tqdm
 
 import tools.utils.settings as settings
 from tools.utils.drawing import drawing_on_frame
@@ -53,11 +54,13 @@ def record_data(output_file: str, num_frames: int, pose_landmarks: bool, face_la
             pass
     except:
         init_csv_file(output_file, num_params)
-
+    
+    count = 0
     class_name = input("Enter the name of the class: ")
     with mp_holistic.Holistic() as holistic:
         cap = cv2.VideoCapture(0)
-        while num_frames >= 0:
+        pbar = tqdm(total=num_frames)
+        while num_frames != count:
             _, frame = cap.read()
             results = holistic.process(frame)
             row = []
@@ -83,7 +86,8 @@ def record_data(output_file: str, num_frames: int, pose_landmarks: bool, face_la
             if len(row) == num_params:
                 row.insert(0, class_name)
                 write_line_in_csv(output_file, row)
-                num_frames -= 1
+                count += 1
+                pbar.update(1)
 
             cv2.imshow('Raw Webcam Feed', frame)
             if cv2.waitKey(10) & 0xFF == ord('q'):

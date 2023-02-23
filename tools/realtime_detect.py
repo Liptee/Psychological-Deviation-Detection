@@ -58,6 +58,7 @@ def realtime_detect(model_file, pose_landmarks=False, face_landmarks=False, left
             cv2.imshow('Raw Webcam Feed', frame)
             if cv2.waitKey(10) & 0xFF == ord('q'):
                 break
+# -------------------------------------------------------------------------------------------------------------------------
 
 def realtime_detect_in_timelaps(model_file: str, num_neighboor_frames: list = [-3, -1], pose_landmarks=False, face_landmarks=False, left_hand_landmarks=False, right_hand_landmarks=False):
     rows = []
@@ -119,6 +120,7 @@ def realtime_detect_in_timelaps(model_file: str, num_neighboor_frames: list = [-
             cv2.imshow('Raw Webcam Feed', frame)
             if cv2.waitKey(10) & 0xFF == ord('q'):
                 break
+# -------------------------------------------------------------------------------------------------------------------------
 
 def realtime_anomaly_detect(model_file: str, pose_landmarks=False, face_landmarks=False, left_hand_landmarks=False, right_hand_landmarks=False, cut_pose = False):
     with open(model_file, 'rb') as f:
@@ -178,6 +180,80 @@ def realtime_anomaly_detect(model_file: str, pose_landmarks=False, face_landmark
 
                 frame = drawing_predict(frame, state)
 
+            cv2.imshow('Raw Webcam Feed', frame)
+            if cv2.waitKey(10) & 0xFF == ord('q'):
+                break
+# -------------------------------------------------------------------------------------------------------------------------
+
+def anomaly_rowtime(model_file: str, pose_landmarks=False, face_landmarks=False, left_hand_landmarks=False, right_hand_landmarks=False, cut_pose = False, num_neighboor_frames: list = [-3, -1]):
+    with open(model_file, 'rb') as f:
+        model = pickle.load(f)
+    rows = []
+    num_frames = abs(min(num_neighboor_frames)) 
+    num_params = 0
+    if pose_landmarks:
+        num_params += settings.POSE_PARAMS
+    if face_landmarks:
+        num_params += settings.FACE_PARAMS
+    if left_hand_landmarks:
+        num_params += settings.HAND_PARAMS
+    if right_hand_landmarks:
+        num_params += settings.HAND_PARAMS
+    if cut_pose and pose_landmarks:
+        num_params -= settings.FACE_PARAMS_IN_POSE
+    num_params *= len(num_neighboor_frames) + 1
+    print(num_params)
+    x = np.zeros((num_params))
+
+    with mp_holistic.Holistic() as holistic:
+        cap = cv2.VideoCapture(0)
+        while cap.isOpened():
+            tmp_list = []
+            _, frame = cap.read()
+            results = holistic.process(frame)
+            row = []
+            if results.pose_landmarks and pose_landmarks:
+                row = add_data_in_row(row, results.pose_landmarks.landmark)
+                if cut_pose:
+                    row = row[settings.FACE_PARAMS_IN_POSE:]
+
+            if results.face_landmarks and face_landmarks:
+                row = add_data_in_row(row, results.face_landmarks.landmark)
+     
+            if results.left_hand_landmarks and left_hand_landmarks:
+                row = add_data_in_row(row, results.left_hand_landmarks.landmark)       
+
+            if results.right_hand_landmarks and right_hand_landmarks:
+                row = add_data_in_row(row, results.right_hand_landmarks.landmark)
+
+            if len(rows) <= num_frames:
+                rows.append(row)
+
+            else:
+                rows.pop(0)
+                rows.append(row)
+                tmp_list.extend(rows[-1])
+                for i in reversed(num_neighboor_frames):
+                    tmp_list.extend(rows[i-1])
+                if len(tmp_list) == num_params:
+                    X = np.array(tmp_list)
+                    X = np.array([x, X])
+                    dataset = TensorDataset(torch.tensor(X.astype(np.float32)))
+                    data_loader = DataLoader(dataset, batch_size=32)
+                    preds = []
+                    for batch in data_loader:
+                        pred = model(batch[0])
+                        preds.append(pred.detach().numpy())
+                    orig = X[-1]
+                    pred = preds[-1][-1]
+                    state = "Normal"
+
+                    cosine_dist = cosine_distance(orig, pred)
+                    print(cosine_dist)
+                    if cosine_dist > 0.032:
+                        state = "Anomaly"
+                    
+                    frame = drawing_predict(frame, state)
             cv2.imshow('Raw Webcam Feed', frame)
             if cv2.waitKey(10) & 0xFF == ord('q'):
                 break
