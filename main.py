@@ -3,7 +3,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import make_pipeline
 
 from tools.record_data import record_data
-from tools.train import train, train_timelaps, autoencoder
+from tools.train import train, train_timelaps, autoencoder, autoencode_timelaps
 from tools.realtime_detect import realtime_detect, realtime_detect_in_timelaps, realtime_anomaly_detect
 
 
@@ -37,6 +37,7 @@ while command != "q":
 
         num_frames = int(input("Enter number of frames: "))
         record_data(f"{filename}.csv", num_frames=num_frames, face_landmarks=memory[filename][0], pose_landmarks=memory[filename][1], right_hand_landmarks=memory[filename][2], left_hand_landmarks=memory[filename][3], pose_cut=cut_pose)
+# -------------------------------------------------------------------------------------------------------------------------
 
     if command == "train":
         filename = input("Enter a filename: ")
@@ -46,6 +47,7 @@ while command != "q":
         }
         test_size = float(input("Enter a test size: "))
         train(f"{filename}.csv", pipelines, test=True, test_size=test_size)
+# -------------------------------------------------------------------------------------------------------------------------
 
     if command == "detect":
         model_name = input("Enter a model name: ")
@@ -71,6 +73,7 @@ while command != "q":
             memory[filename].append(left_hand_landmarks)
         
         realtime_detect(f"models/{model_name}.pkl", face_landmarks=memory[filename][0], pose_landmarks=memory[filename][1], right_hand_landmarks=memory[filename][2], left_hand_landmarks=memory[filename][3])
+# -------------------------------------------------------------------------------------------------------------------------
 
     if command == "realtime_train":
         filename = input("Enter a filename: ")
@@ -87,6 +90,7 @@ while command != "q":
                 break
         test_size = float(input("Enter a test size: "))
         train_timelaps(f"{filename}.csv", pipelines, test=True, test_size=test_size, num_neighboor_frames=neighbors)
+# -------------------------------------------------------------------------------------------------------------------------
 
     if command == "realtime_detect":
         model_name = input("Enter a model name: ")
@@ -118,11 +122,13 @@ while command != "q":
             except:
                 break
         realtime_detect_in_timelaps(f"models/{model_name}.pkl", face_landmarks=memory[filename][0], pose_landmarks=memory[filename][1], right_hand_landmarks=memory[filename][2], left_hand_landmarks=memory[filename][3], num_neighboor_frames=neighbors)
+# -------------------------------------------------------------------------------------------------------------------------
 
     if command == "autoencode":
         filename = input("Enter a filename: ")
         epochs = int(input("Input epochs: "))
         autoencoder(f"{filename}.csv", epochs)
+# -------------------------------------------------------------------------------------------------------------------------
 
     if command == "anomaly":
         model_name = input("Enter a model name: ")
@@ -151,3 +157,17 @@ while command != "q":
             memory[filename].append(left_hand_landmarks)
         
         realtime_anomaly_detect(f"models/{model_name}.pkl", face_landmarks=memory[filename][0], pose_landmarks=memory[filename][1], right_hand_landmarks=memory[filename][2], left_hand_landmarks=memory[filename][3], cut_pose=cut_pose)
+# -------------------------------------------------------------------------------------------------------------------------
+    
+    if command == "timeraw autoencode":
+        filename = input("Enter a filename: ")
+        epochs = int(input("Input epochs: "))
+        neighbors = []
+        while True:
+            neighbor = input("Enter number of neighbors: ")
+            try:
+                neighbors.append(int(neighbor))
+            except:
+                break
+        train_size = float(input("train size: "))
+        autoencode_timelaps(f"{filename}.csv", epochs, train_size=train_size, num_neighboor_frames=neighbors)
