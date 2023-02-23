@@ -7,7 +7,7 @@ import warnings
 import tools.utils.settings as settings
 from tools.utils.drawing import drawing_predict
 from tools.utils.saver import add_data_in_row
-from tools.utils.back import cosine_distance
+from tools.utils.back import cosine_distance, return_num_params
 
 import torch
 from torch.utils.data import DataLoader, TensorDataset
@@ -17,19 +17,11 @@ warnings.filterwarnings("ignore")
 mp_drawing = mediapipe.solutions.drawing_utils
 mp_holistic = mediapipe.solutions.holistic
 
-def realtime_detect(model_file, pose_landmarks=False, face_landmarks=False, left_hand_landmarks=False, right_hand_landmarks=False):
+def realtime_detect(model_file, pose_landmarks=False, face_landmarks=False, left_hand_landmarks=False, right_hand_landmarks=False, cut_pose=False):
     with open(model_file, 'rb') as f:
         model = pickle.load(f)
     
-    num_params = 0
-    if pose_landmarks:
-        num_params += settings.POSE_PARAMS
-    if face_landmarks:
-        num_params += settings.FACE_PARAMS
-    if left_hand_landmarks:
-        num_params += settings.HAND_PARAMS
-    if right_hand_landmarks:
-        num_params += settings.HAND_PARAMS
+    num_params = return_num_params(pose_landmarks, face_landmarks, right_hand_landmarks, left_hand_landmarks, cut_pose)
 
     with mp_holistic.Holistic() as holistic:
         cap = cv2.VideoCapture(0)
@@ -39,7 +31,8 @@ def realtime_detect(model_file, pose_landmarks=False, face_landmarks=False, left
             row = []
             if results.pose_landmarks and pose_landmarks:
                 row = add_data_in_row(row, results.pose_landmarks.landmark)
-
+                if cut_pose:
+                    row = row[settings.FACE_PARAMS_IN_POSE:]
             if results.face_landmarks and face_landmarks:
                 row = add_data_in_row(row, results.face_landmarks.landmark)
      
@@ -60,7 +53,7 @@ def realtime_detect(model_file, pose_landmarks=False, face_landmarks=False, left
                 break
 # -------------------------------------------------------------------------------------------------------------------------
 
-def realtime_detect_in_timelaps(model_file: str, num_neighboor_frames: list = [-3, -1], pose_landmarks=False, face_landmarks=False, left_hand_landmarks=False, right_hand_landmarks=False):
+def realtime_detect_in_timelaps(model_file: str, num_neighboor_frames: list = [-3, -1], pose_landmarks=False, face_landmarks=False, left_hand_landmarks=False, right_hand_landmarks=False, pose_cut=False):
     rows = []
     #calcucalte difference between min and max number of frames
     max_frames = max(num_neighboor_frames)
@@ -70,20 +63,11 @@ def realtime_detect_in_timelaps(model_file: str, num_neighboor_frames: list = [-
     with open(model_file, 'rb') as f:
         model = pickle.load(f)
     
-    num_params = 0
-    if pose_landmarks:
-        num_params += settings.POSE_PARAMS
-    if face_landmarks:
-        num_params += settings.FACE_PARAMS
-    if left_hand_landmarks:
-        num_params += settings.HAND_PARAMS
-    if right_hand_landmarks:
-        num_params += settings.HAND_PARAMS
+    num_params = return_num_params(pose_landmarks, face_landmarks, right_hand_landmarks, left_hand_landmarks, pose_cut)
 
     num_params *= len(num_neighboor_frames) + 1
     with mp_holistic.Holistic() as holistic:
         cap = cv2.VideoCapture(0)
-        
         
         while cap.isOpened():
             tmp_list = []
@@ -92,7 +76,8 @@ def realtime_detect_in_timelaps(model_file: str, num_neighboor_frames: list = [-
             row = []
             if results.pose_landmarks and pose_landmarks:
                 row = add_data_in_row(row, results.pose_landmarks.landmark)
-
+                if pose_cut:
+                    row = row[settings.FACE_PARAMS_IN_POSE:]
             if results.face_landmarks and face_landmarks:
                 row = add_data_in_row(row, results.face_landmarks.landmark)
      
@@ -122,21 +107,11 @@ def realtime_detect_in_timelaps(model_file: str, num_neighboor_frames: list = [-
                 break
 # -------------------------------------------------------------------------------------------------------------------------
 
-def realtime_anomaly_detect(model_file: str, pose_landmarks=False, face_landmarks=False, left_hand_landmarks=False, right_hand_landmarks=False, cut_pose = False):
+def realtime_anomaly_detect(model_file: str, pose_landmarks=False, face_landmarks=False, left_hand_landmarks=False, right_hand_landmarks=False, pose_cut = False):
     with open(model_file, 'rb') as f:
         model = pickle.load(f)
 
-    num_params = 0
-    if pose_landmarks:
-        num_params += settings.POSE_PARAMS
-    if face_landmarks:
-        num_params += settings.FACE_PARAMS
-    if left_hand_landmarks:
-        num_params += settings.HAND_PARAMS
-    if right_hand_landmarks:
-        num_params += settings.HAND_PARAMS
-    if cut_pose and pose_landmarks:
-        num_params -= settings.FACE_PARAMS_IN_POSE
+    num_params = return_num_params(pose_landmarks, face_landmarks, right_hand_landmarks, left_hand_landmarks, pose_cut)
     x = np.zeros((num_params))
 
     with mp_holistic.Holistic() as holistic:
@@ -147,9 +122,8 @@ def realtime_anomaly_detect(model_file: str, pose_landmarks=False, face_landmark
             row = []
             if results.pose_landmarks and pose_landmarks:
                 row = add_data_in_row(row, results.pose_landmarks.landmark)
-                if cut_pose:
+                if pose_cut:
                     row = row[settings.FACE_PARAMS_IN_POSE:]
-                    print(len(row))
 
             if results.face_landmarks and face_landmarks:
                 row = add_data_in_row(row, results.face_landmarks.landmark)
@@ -190,17 +164,8 @@ def anomaly_rowtime(model_file: str, pose_landmarks=False, face_landmarks=False,
         model = pickle.load(f)
     rows = []
     num_frames = abs(min(num_neighboor_frames)) 
-    num_params = 0
-    if pose_landmarks:
-        num_params += settings.POSE_PARAMS
-    if face_landmarks:
-        num_params += settings.FACE_PARAMS
-    if left_hand_landmarks:
-        num_params += settings.HAND_PARAMS
-    if right_hand_landmarks:
-        num_params += settings.HAND_PARAMS
-    if cut_pose and pose_landmarks:
-        num_params -= settings.FACE_PARAMS_IN_POSE
+    num_params = return_num_params(pose_landmarks, face_landmarks, right_hand_landmarks, left_hand_landmarks, pose_cut)
+
     num_params *= len(num_neighboor_frames) + 1
     print(num_params)
     x = np.zeros((num_params))

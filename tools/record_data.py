@@ -5,6 +5,7 @@ from tqdm import tqdm
 import tools.utils.settings as settings
 from tools.utils.drawing import drawing_on_frame
 from tools.utils.saver import write_line_in_csv, add_data_in_row, init_csv_file
+from tools.utils.back import return_num_params
 
 mp_drawing = mediapipe.solutions.drawing_utils
 mp_holistic = mediapipe.solutions.holistic
@@ -36,17 +37,7 @@ def record_data(output_file: str, num_frames: int, pose_landmarks: bool, face_la
             right_hand_landmarks: bool
             Write right hand landmarks or don't
     """
-    num_params = 0
-    if pose_landmarks:
-        num_params += settings.POSE_PARAMS
-    if face_landmarks:
-        num_params += settings.FACE_PARAMS
-    if left_hand_landmarks:
-        num_params += settings.HAND_PARAMS
-    if right_hand_landmarks:
-        num_params += settings.HAND_PARAMS
-    if pose_cut and pose_landmarks:
-        num_params -= settings.FACE_PARAMS_IN_POSE
+    num_params = return_num_params(pose_landmarks, face_landmarks, right_hand_landmarks, left_hand_landmarks, pose_cut)
 
     #check if the file exists
     try:

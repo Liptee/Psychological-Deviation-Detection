@@ -60,6 +60,8 @@ while command != "q":
             memory[filename].append(face_landmarks)
             if input("Pose landmarks? (y/n): ") == "y": 
                 pose_landmarks = True
+                if input("Do you want use cutting version? (y/n): ") == "y":
+                    cut_pose = True
             else: pose_landmarks = False
             memory[filename].append(pose_landmarks)
             if input("right hand landmarks? (y/n): ") == "y":
@@ -71,7 +73,7 @@ while command != "q":
             else: left_hand_landmarks = False
             memory[filename].append(left_hand_landmarks)
         
-        realtime_detect(f"models/{model_name}.pkl", face_landmarks=memory[filename][0], pose_landmarks=memory[filename][1], right_hand_landmarks=memory[filename][2], left_hand_landmarks=memory[filename][3])
+        realtime_detect(f"models/{model_name}.pkl", face_landmarks=memory[filename][0], pose_landmarks=memory[filename][1], right_hand_landmarks=memory[filename][2], left_hand_landmarks=memory[filename][3], cut_pose=cut_pose)
 # -------------------------------------------------------------------------------------------------------------------------
 
     if command == "realtime_train":
@@ -102,6 +104,8 @@ while command != "q":
             memory[filename].append(face_landmarks)
             if input("Pose landmarks? (y/n): ") == "y": 
                 pose_landmarks = True
+                if input("Do you want use cutting version? (y/n): ") == "y":
+                    cut_pose = True
             else: pose_landmarks = False
             memory[filename].append(pose_landmarks)
             if input("right hand landmarks? (y/n): ") == "y":
@@ -120,7 +124,7 @@ while command != "q":
                 neighbors.append(int(neighbor))
             except:
                 break
-        realtime_detect_in_timelaps(f"models/{model_name}.pkl", face_landmarks=memory[filename][0], pose_landmarks=memory[filename][1], right_hand_landmarks=memory[filename][2], left_hand_landmarks=memory[filename][3], num_neighboor_frames=neighbors)
+        realtime_detect_in_timelaps(f"models/{model_name}.pkl", face_landmarks=memory[filename][0], pose_landmarks=memory[filename][1], right_hand_landmarks=memory[filename][2], left_hand_landmarks=memory[filename][3], num_neighboor_frames=neighbors, pose_cut=cut_pose)
 # -------------------------------------------------------------------------------------------------------------------------
 
     if command == "autoencode":
@@ -155,7 +159,7 @@ while command != "q":
             else: left_hand_landmarks = False
             memory[filename].append(left_hand_landmarks)
         
-        realtime_anomaly_detect(f"models/{model_name}.pkl", face_landmarks=memory[filename][0], pose_landmarks=memory[filename][1], right_hand_landmarks=memory[filename][2], left_hand_landmarks=memory[filename][3], cut_pose=cut_pose)
+        realtime_anomaly_detect(f"models/{model_name}.pkl", face_landmarks=memory[filename][0], pose_landmarks=memory[filename][1], right_hand_landmarks=memory[filename][2], left_hand_landmarks=memory[filename][3], pose_cut=cut_pose)
 # -------------------------------------------------------------------------------------------------------------------------
     
     if command == "timeraw autoencode":
