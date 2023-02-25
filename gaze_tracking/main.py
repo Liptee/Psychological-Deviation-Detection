@@ -521,69 +521,63 @@ def gaze_tracker(video_file, distances=False, vectors=False, frames=None):
     count = 0
     result = {}
     while cap.isOpened():
-        try:
-            if count == frames:
-                break
-            ret, frame = cap.read()
-            height, width, _ = frame.shape
-            image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        if count == frames:
+            break
+        ret, frame = cap.read()
+        height, width, _ = frame.shape
+        image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-            image_rgb.flags.writeable = False
-            results = face_mesh.process(image_rgb)
+        image_rgb.flags.writeable = False
+        results = face_mesh.process(image_rgb)
+        if results.multi_face_landmarks:
+            face_landmarks = np.asarray([[landmark.x * width, landmark.y * height] for landmark in results.multi_face_landmarks[0].landmark])
+            face_landmarks = np.asarray([face_landmarks[i] for i in landmarks_ids])
+            smoothing_buffer.append(face_landmarks)
+            face_landmarks = np.asarray(smoothing_buffer).mean(axis=0)
 
-            if results.multi_face_landmarks:
-                face_landmarks = np.asarray([[landmark.x * width, landmark.y * height] for landmark in results.multi_face_landmarks[0].landmark])
-                face_landmarks = np.asarray([face_landmarks[i] for i in landmarks_ids])
-                smoothing_buffer.append(face_landmarks)
-                face_landmarks = np.asarray(smoothing_buffer).mean(axis=0)
+            _, rvec, tvec, _ = cv2.solvePnPRansac(face_model, face_landmarks, settings.CAMERA_MATRIX, settings.DIST_COEFFS, rvec=rvec, tvec=tvec, useExtrinsicGuess=True, flags=cv2.SOLVEPNP_EPNP)  # Initial fit
+            for _ in range(10):
+                _, rvec, tvec = cv2.solvePnP(face_model, face_landmarks, settings.CAMERA_MATRIX, settings.DIST_COEFFS, rvec=rvec, tvec=tvec, useExtrinsicGuess=True, flags=cv2.SOLVEPNP_ITERATIVE)  # Second fit for higher accuracy
 
-                _, rvec, tvec, _ = cv2.solvePnPRansac(face_model, face_landmarks, settings.CAMERA_MATRIX, settings.DIST_COEFFS, rvec=rvec, tvec=tvec, useExtrinsicGuess=True, flags=cv2.SOLVEPNP_EPNP)  # Initial fit
-                for _ in range(10):
-                    _, rvec, tvec = cv2.solvePnP(face_model, face_landmarks, settings.CAMERA_MATRIX, settings.DIST_COEFFS, rvec=rvec, tvec=tvec, useExtrinsicGuess=True, flags=cv2.SOLVEPNP_ITERATIVE)  # Second fit for higher accuracy
+            rvec_buffer.append(rvec)
+            rvec = np.asarray(rvec_buffer).mean(axis=0)
+            tvec_buffer.append(tvec)
+            tvec = np.asarray(tvec_buffer).mean(axis=0)
+            # data preprocessing
+            face_model_transformed, _ = get_face_landmarks_in_ccs(settings.CAMERA_MATRIX, settings.DIST_COEFFS, frame.shape, results, face_model, face_model_all, landmarks_ids)
+            left_eye_center = 0.5 * (face_model_transformed[:, 2] + face_model_transformed[:, 3]).reshape((3, 1))  # center eye
+            right_eye_center = 0.5 * (face_model_transformed[:, 0] + face_model_transformed[:, 1]).reshape((3, 1))  # center eye
+            face_center = face_model_transformed.mean(axis=1).reshape((3, 1))
 
-                rvec_buffer.append(rvec)
-                rvec = np.asarray(rvec_buffer).mean(axis=0)
-                tvec_buffer.append(tvec)
-                tvec = np.asarray(tvec_buffer).mean(axis=0)
+            img_warped_left_eye, _, _ = normalize_single_image(image_rgb, rvec, None, left_eye_center, settings.CAMERA_MATRIX)
+            img_warped_right_eye, _, _ = normalize_single_image(image_rgb, rvec, None, right_eye_center, settings.CAMERA_MATRIX)
+            img_warped_face, _, rotation_matrix = normalize_single_image(image_rgb, rvec, None, face_center, settings.CAMERA_MATRIX, is_eye=False)
 
-                # data preprocessing
-                face_model_transformed, _ = get_face_landmarks_in_ccs(settings.CAMERA_MATRIX, settings.DIST_COEFFS, frame.shape, results, face_model, face_model_all, landmarks_ids)
-                left_eye_center = 0.5 * (face_model_transformed[:, 2] + face_model_transformed[:, 3]).reshape((3, 1))  # center eye
-                right_eye_center = 0.5 * (face_model_transformed[:, 0] + face_model_transformed[:, 1]).reshape((3, 1))  # center eye
-                face_center = face_model_transformed.mean(axis=1).reshape((3, 1))
+            person_idx = torch.Tensor([0]).unsqueeze(0).long().to(device) 
+            full_face_image = transform(image=img_warped_face)["image"].unsqueeze(0).float().to(device)
+            left_eye_image = transform(image=img_warped_left_eye)["image"].unsqueeze(0).float().to(device)
+            right_eye_image = transform(image=img_warped_right_eye)["image"].unsqueeze(0).float().to(device)
 
-                img_warped_left_eye, _, _ = normalize_single_image(image_rgb, rvec, None, left_eye_center, settings.CAMERA_MATRIX)
-                img_warped_right_eye, _, _ = normalize_single_image(image_rgb, rvec, None, right_eye_center, settings.CAMERA_MATRIX)
-                img_warped_face, _, rotation_matrix = normalize_single_image(image_rgb, rvec, None, face_center, settings.CAMERA_MATRIX, is_eye=False)
-
-                person_idx = torch.Tensor([0]).unsqueeze(0).long().to(device) 
-                full_face_image = transform(image=img_warped_face)["image"].unsqueeze(0).float().to(device)
-                left_eye_image = transform(image=img_warped_left_eye)["image"].unsqueeze(0).float().to(device)
-                right_eye_image = transform(image=img_warped_right_eye)["image"].unsqueeze(0).float().to(device)
-
-                # prediction
-                output = model(person_idx, full_face_image, right_eye_image, left_eye_image).squeeze(0).detach().cpu().numpy()
-                gaze_vector_3d_normalized = gaze_2d_to_3d(output)
-                gaze_vector = np.dot(np.linalg.inv(rotation_matrix), gaze_vector_3d_normalized)
-                
-                # def calculate distance between two points in 3d space
-                def distance(p1, p2):
-                    return np.sqrt(np.sum((p1 - p2)**2))
+            # prediction
+            output = model(person_idx, full_face_image, right_eye_image, left_eye_image).squeeze(0).detach().cpu().numpy()
+            gaze_vector_3d_normalized = gaze_2d_to_3d(output)
+            gaze_vector = np.dot(np.linalg.inv(rotation_matrix), gaze_vector_3d_normalized)
             
-                gaze_vector_buffer.append(gaze_vector)
-                
-                gaze_vector = np.asarray(gaze_vector_buffer).mean(axis=0)
-                if vectors:
-                    result[count] = gaze_vector
+            # def calculate distance between two points in 3d space
+            def distance(p1, p2):
+                return np.sqrt(np.sum((p1 - p2)**2))
+        
+            gaze_vector_buffer.append(gaze_vector)
+            
+            gaze_vector = np.asarray(gaze_vector_buffer).mean(axis=0)
+            if vectors:
+                result[count] = gaze_vector
 
-                if distances:
-                    result[count] = distance(gaze_vector, pre_gaze_vector)
-                    print(result[count])
-                    pre_gaze_vector = gaze_vector
-    
-                count+=1       
+            if distances:
+                result[count] = distance(gaze_vector, pre_gaze_vector)
+                print(result[count])
+                pre_gaze_vector = gaze_vector
 
-        except:
-            pass
+            count+=1      
 
     return result
