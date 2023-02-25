@@ -7,7 +7,7 @@ import numpy as np
 import torch
 from albumentations.pytorch import ToTensorV2
 
-import settings
+import tools.utils.settings as settings
 from gaze_tracking.model import Model
 from gaze_tracking.mpii_face_gaze_preprocessing import normalize_single_image
 from gaze_tracking.utils import get_face_landmarks_in_ccs, gaze_2d_to_3d

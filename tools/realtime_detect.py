@@ -164,7 +164,7 @@ def anomaly_rowtime(model_file: str, pose_landmarks=False, face_landmarks=False,
         model = pickle.load(f)
     rows = []
     num_frames = abs(min(num_neighboor_frames)) 
-    num_params = return_num_params(pose_landmarks, face_landmarks, right_hand_landmarks, left_hand_landmarks, pose_cut)
+    num_params = return_num_params(pose_landmarks, face_landmarks, right_hand_landmarks, left_hand_landmarks, cut_pose)
 
     num_params *= len(num_neighboor_frames) + 1
     print(num_params)
