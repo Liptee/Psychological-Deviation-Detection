@@ -10,7 +10,16 @@ from tools.utils.back import return_num_params
 mp_drawing = mediapipe.solutions.drawing_utils
 mp_holistic = mediapipe.solutions.holistic
 
-def record_data(output_file: str, num_frames: int, pose_landmarks: bool, face_landmarks: bool, left_hand_landmarks: bool, right_hand_landmarks: bool, pose_cut: bool = False):
+
+def record_data(output_file: str,
+                num_frames: int,
+                pose_landmarks: bool = False,
+                face_landmarks: bool = False,
+                left_hand_landmarks: bool = False,
+                right_hand_landmarks: bool = False,
+                pose_cut: bool = False,
+                class_name = None,
+                source = 0):
     """
         This function extracts from webcam frames Action Units and 
         write them into csv file. Also this code require to label frame for every 
@@ -39,20 +48,24 @@ def record_data(output_file: str, num_frames: int, pose_landmarks: bool, face_la
     """
     num_params = return_num_params(pose_landmarks, face_landmarks, right_hand_landmarks, left_hand_landmarks, pose_cut)
 
-    #check if the file exists
+    # check if the file exists
     try:
         with open(output_file, 'r') as file:
             pass
     except:
         init_csv_file(output_file, num_params)
-    
+
     count = 0
-    class_name = input("Enter the name of the class: ")
+    if not class_name:
+        class_name = input("Enter the name of the class: ")
+
     with mp_holistic.Holistic() as holistic:
-        cap = cv2.VideoCapture(0)
+        cap = cv2.VideoCapture(source)
         pbar = tqdm(total=num_frames)
         while num_frames != count:
-            _, frame = cap.read()
+            ret, frame = cap.read()
+            if not ret:
+                break
             results = holistic.process(frame)
             row = []
             if results.pose_landmarks and pose_landmarks:
