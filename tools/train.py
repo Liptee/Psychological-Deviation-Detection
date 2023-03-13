@@ -70,8 +70,18 @@ def train_timelaps(data_file: str, pipelines: dict, num_neighboor_frames: list =
             pickle.dump(model, f)
 # -------------------------------------------------------------------------------------------------------------------------
 
-def autoencoder(data_file: str, epochs: int, train_size: float = 0.9, autoencoder=Autoencoder_ver1, hidden_size:int = 64, learning_rate=1e-3, batch_size: int = 32):
-    file_name = data_file.split('.')[0].split('/')[-1]
+def autoencoder(data_file: str,
+                epochs: int,
+                model_name: str = None,
+                train_size: float = 0.9,
+                autoencoder=Autoencoder_ver1,
+                hidden_size:int = 64,
+                learning_rate=1e-3,
+                batch_size: int = 32,
+                output_file: str = "model.pkl"):
+    print(f"data_file: {data_file}")
+    print(f"model_name: {model_name}")
+    print(f"output_file: {output_file}")
     df = pd.read_csv(data_file)
     df = df.fillna(0)
     X = df.drop("class", axis=1)
@@ -83,7 +93,12 @@ def autoencoder(data_file: str, epochs: int, train_size: float = 0.9, autoencode
     x_test = np.array(x_test)
     input_size = len(x_train[0])
 
-    model = autoencoder(input_size=input_size)#, hidden_size=hidden_size)
+    if not model_name:
+        model = autoencoder(input_size=input_size)#, hidden_size=hidden_size)
+    else:
+        with open(model_name, 'rb') as f:
+            model = pickle.load(f)
+
     criterion = nn.MSELoss()
     optimizer = Adam(model.parameters(), lr=learning_rate)
 
@@ -115,12 +130,15 @@ def autoencoder(data_file: str, epochs: int, train_size: float = 0.9, autoencode
         val_losses.append(val_loss)
         print(f'Epoch {epoch + 1}/{epochs}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}')
 
-    with open(f"models/autoencoder_{file_name}.pkl", "wb") as f:
+    print(output_file)
+    with open(output_file, "wb") as f:
         pickle.dump(model, f)
 # -------------------------------------------------------------------------------------------------------------------------
 
-def autoencode_timelaps(data_file: str, 
-                        epochs: int, 
+def autoencode_timelaps(data_file: str,
+                        output_file: str,
+                        epochs: int,
+                        model_name: str = None,
                         train_size: float = 0.9, 
                         autoencoder=Autoencoder_ver1, 
                         hidden_size:int = 64, 
@@ -153,7 +171,12 @@ def autoencode_timelaps(data_file: str,
     print(len(x_train[0]))
     input_size = len(x_train[0])
 
-    model = autoencoder(input_size=input_size)#, hidden_size=hidden_size)
+    if not model_name:
+        model = autoencoder(input_size=input_size)#, hidden_size=hidden_size)
+    else:
+        with open(model_name, 'rb') as f:
+            model = pickle.load(f)
+
     criterion = nn.MSELoss()
     optimizer = Adam(model.parameters(), lr=learning_rate)
 
@@ -185,5 +208,5 @@ def autoencode_timelaps(data_file: str,
         val_losses.append(val_loss)
         print(f'Epoch {epoch + 1}/{epochs}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}')
 
-    with open(f"models/autotime_{file_name}.pkl", "wb") as f:
+    with open(output_file, "wb") as f:
         pickle.dump(model, f)
