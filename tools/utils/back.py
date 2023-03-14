@@ -28,3 +28,21 @@ def return_num_params(pose: bool,
     if cut_pose and pose:
         num_params -= settings.FACE_PARAMS_IN_POSE
     return num_params
+
+
+def find_max_med(data):
+    max = 0.0
+    for id in data:
+        if data[id]['median'] > max:
+            max = data[id]['average']
+    print(max)
+    return max
+
+
+def find_max_avg(data):
+    max = 0.0
+    for id in data:
+        if data[id]['average'] > max:
+            max = data[id]['average']
+    print(max)
+    return max

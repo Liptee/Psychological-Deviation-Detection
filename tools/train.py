@@ -2,8 +2,11 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
 from tools.utils.saver import make_dir_if_not_exist 
 from tools.utils.autoencoders import Autoencoder_ver2, Autoencoder_ver1
+from tools.utils.saver import load_data
+from tools.realtime_detect import anomaly_rowtime
 
 import pickle
+import json
 import numpy as np
 import pandas as pd
 
@@ -210,3 +213,32 @@ def autoencode_timelaps(data_file: str,
 
     with open(output_file, "wb") as f:
         pickle.dump(model, f)
+
+def create_json_autoencoders(model_file,
+                      dir: str,
+                      output_data,
+                      pose_landmarks=False,
+                      pose_cut=False,
+                      face_landmarks=False,
+                      right_hand=False,
+                      left_hand=False,
+                      num_neighboor=None):
+        X = load_data(dir, "mp4")
+        all_data = {}
+        for x in X:
+            data = anomaly_rowtime(model_file,
+                                   source=x,
+                                   pose_landmarks=pose_landmarks,
+                                   face_landmarks=face_landmarks,
+                                   left_hand_landmarks=left_hand,
+                                   right_hand_landmarks=right_hand,
+                                   pose_cut=pose_cut,
+                                   num_neighboor_frames=num_neighboor,
+                                   show=False,
+                                   return_data=True)
+
+            all_data[x] = data
+
+        json_data = json.dumps(all_data, indent=len(X))
+        with open(output_data, 'w') as f:
+            f.write(json_data)

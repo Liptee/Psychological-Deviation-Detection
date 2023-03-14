@@ -1,213 +1,100 @@
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-from sklearn.preprocessing import StandardScaler
-from sklearn.pipeline import make_pipeline
-
 from tools.record_data import record_data
-from tools.train import train, train_timelaps, autoencoder, autoencode_timelaps
-from tools.realtime_detect import realtime_detect, realtime_detect_in_timelaps, realtime_anomaly_detect, anomaly_rowtime
+from tools.train import autoencoder, autoencode_timelaps, create_json_autoencoders
+from tools.realtime_detect import realtime_anomaly_detect, anomaly_rowtime
+from tools.utils.saver import load_data
+from tools.utils.back import find_max_med
 
-memory = {}
-command = ""
-while command != "q":
-    command = input("Enter a command: ")
-    if command == "record":
-        filename = input("Enter a filename: ")
-        cut_pose = False
-        if not filename in memory:
-            memory[filename] = []
-            if input("Face landmarks? (y/n): ") == "y":
-                face_landmarks = True
-            else: face_landmarks = False
-            memory[filename].append(face_landmarks)
-            if input("Pose landmarks? (y/n): ") == "y": 
-                pose_landmarks = True
-                if input("Do you want use cutting version? (y/n): ") == "y":
-                    cut_pose = True
-            else: pose_landmarks = False
-            memory[filename].append(pose_landmarks)
-            if input("right hand landmarks? (y/n): ") == "y":
-                right_hand_landmarks = True
-            else: right_hand_landmarks = False
-            memory[filename].append(right_hand_landmarks)
-            if input("left hand landmarks? (y/n): ") == "y":
-                left_hand_landmarks = True
-            else: left_hand_landmarks = False
-            memory[filename].append(left_hand_landmarks)
+PATH_TO_DATA = "anomaly_data"
+CAM_LIST = ("CAM1", "CAM2", "IR")
+OBJECTS = ("Andrey", "Artyom", "Pirog", "Vladimir")
+NUMS_NEIGBOOR = [-12, -10, -8, -6, -4,-2]
 
-        num_frames = int(input("Enter number of frames: "))
-        record_data(f"{filename}.csv", num_frames=num_frames, face_landmarks=memory[filename][0], pose_landmarks=memory[filename][1], right_hand_landmarks=memory[filename][2], left_hand_landmarks=memory[filename][3], pose_cut=cut_pose)
-# -------------------------------------------------------------------------------------------------------------------------
 
-    if command == "train":
-        filename = input("Enter a filename: ")
-        pipelines = {
-            'RFC':make_pipeline(StandardScaler(), RandomForestClassifier()),
-            'GBC':make_pipeline(StandardScaler(), GradientBoostingClassifier())
-        }
-        test_size = float(input("Enter a test size: "))
-        train(f"{filename}.csv", pipelines, test=True, test_size=test_size)
-# -------------------------------------------------------------------------------------------------------------------------
+# for record data
+# for cam in CAM_LIST:
+#     for object in OBJECTS:
+#         X = load_data(f"{PATH_TO_DATA}/{cam}/{object}/normal", "mp4")
+#         for x in X:
+#             output = x.split(".")[0]
+#             output = f"{output}.csv"
+#             record_data(output_file=output,
+#                         num_frames=1000,
+#                         pose_landmarks=True,
+#                         pose_cut=True,
+#                         class_name="Normal",
+#                         source=x)
 
-    if command == "detect":
-        model_name = input("Enter a model name: ")
-        filename = model_name.split("_")[0]
 
-        if not filename in memory:
-            memory[filename] = []
-            if input("Face landmarks? (y/n): ") == "y":
-                face_landmarks = True
-            else: face_landmarks = False
-            memory[filename].append(face_landmarks)
-            if input("Pose landmarks? (y/n): ") == "y": 
-                pose_landmarks = True
-                if input("Do you want use cutting version? (y/n): ") == "y":
-                    cut_pose = True
-            else: pose_landmarks = False
-            memory[filename].append(pose_landmarks)
-            if input("right hand landmarks? (y/n): ") == "y":
-                right_hand_landmarks = True
-            else: right_hand_landmarks = False
-            memory[filename].append(right_hand_landmarks)
-            if input("left hand landmarks? (y/n): ") == "y":
-                left_hand_landmarks = True
-            else: left_hand_landmarks = False
-            memory[filename].append(left_hand_landmarks)
-        
-        realtime_detect(f"models/{model_name}.pkl", face_landmarks=memory[filename][0], pose_landmarks=memory[filename][1], right_hand_landmarks=memory[filename][2], left_hand_landmarks=memory[filename][3], cut_pose=cut_pose)
-# -------------------------------------------------------------------------------------------------------------------------
+# for autoencode
+# for cam in CAM_LIST:
+#     for object in OBJECTS:
+#         X = load_data(f"{PATH_TO_DATA}/{cam}/{object}/normal", "csv")
+#         model_name = f"{PATH_TO_DATA}/{cam}/{object}/model.pkl"
+#         counter = 0
+#         for x in X:
+#             if counter == 0:
+#                 autoencoder(data_file=x,
+#                             epochs=500,
+#                             train_size=0.9,
+#                             learning_rate=3e-4,
+#                             batch_size=32,
+#                             output_file=model_name)
+#             else:
+#                 autoencoder(data_file=x,
+#                             epochs=500,
+#                             train_size=0.9,
+#                             learning_rate=3e-4,
+#                             batch_size=32,
+#                             model_name=model_name,
+#                             output_file=model_name)
+#
+#             counter += 1
 
-    if command == "realtime_train":
-        filename = input("Enter a filename: ")
-        pipelines = {
-            'RFC':make_pipeline(StandardScaler(), RandomForestClassifier()),
-            'GBC':make_pipeline(StandardScaler(), GradientBoostingClassifier())
-        }
-        neighbors = []
-        while True:
-            neighbor = input("Enter number of neighbors: ")
-            try:
-                neighbors.append(int(neighbor))
-            except:
-                break
-        test_size = float(input("Enter a test size: "))
-        train_timelaps(f"{filename}.csv", pipelines, test=True, test_size=test_size, num_neighboor_frames=neighbors)
-# -------------------------------------------------------------------------------------------------------------------------
+# # for timelaps autoencode
+# for cam in CAM_LIST:
+#     for object in OBJECTS:
+#         X = load_data(f"{PATH_TO_DATA}/{cam}/{object}/normal", "csv")
+#         model_name = f"{PATH_TO_DATA}/{cam}/{object}/model_time.pkl"
+#         counter = 0
+#         for x in X:
+#             if counter == 0:
+#                 autoencode_timelaps(data_file=x,
+#                                     output_file=model_name,
+#                                     epochs=500,
+#                                     train_size=0.9,
+#                                     learning_rate=3e-4,
+#                                     batch_size=32,
+#                                     num_neighboor_frames=NUMS_NEIGBOOR)
+#             else:
+#                 autoencode_timelaps(data_file=x,
+#                                     output_file=model_name,
+#                                     epochs=500,
+#                                     model_name=model_name,
+#                                     train_size=0.9,
+#                                     learning_rate=3e-4,
+#                                     batch_size=32,
+#                                     num_neighboor_frames=NUMS_NEIGBOOR)
+#
+#             counter += 1
+#
+#         create_json_autoencoders(model_file=model_name,
+#                                  dir=f"{PATH_TO_DATA}/{cam}/{object}/normal",
+#                                  output_data=f"{PATH_TO_DATA}/{cam}/{object}/model_time.json",
+#                                  pose_landmarks=True,
+#                                  pose_cut=True,
+#                                  num_neighboor=NUMS_NEIGBOOR)
 
-    if command == "realtime_detect":
-        model_name = input("Enter a model name: ")
-        filename = model_name.split("_")[1]
-        if not filename in memory:
-            memory[filename] = []
-            if input("Face landmarks? (y/n): ") == "y":
-                face_landmarks = True
-            else: face_landmarks = False
-            memory[filename].append(face_landmarks)
-            if input("Pose landmarks? (y/n): ") == "y": 
-                pose_landmarks = True
-                if input("Do you want use cutting version? (y/n): ") == "y":
-                    cut_pose = True
-            else: pose_landmarks = False
-            memory[filename].append(pose_landmarks)
-            if input("right hand landmarks? (y/n): ") == "y":
-                right_hand_landmarks = True
-            else: right_hand_landmarks = False
-            memory[filename].append(right_hand_landmarks)
-            if input("left hand landmarks? (y/n): ") == "y":
-                left_hand_landmarks = True
-            else: left_hand_landmarks = False
-            memory[filename].append(left_hand_landmarks)
 
-        neighbors = []
-        while True:
-            neighbor = input("Enter number of neighbors: ")
-            try:
-                neighbors.append(int(neighbor))
-            except:
-                break
-        realtime_detect_in_timelaps(f"models/{model_name}.pkl", face_landmarks=memory[filename][0], pose_landmarks=memory[filename][1], right_hand_landmarks=memory[filename][2], left_hand_landmarks=memory[filename][3], num_neighboor_frames=neighbors, pose_cut=cut_pose)
-# -------------------------------------------------------------------------------------------------------------------------
-
-    if command == "autoencode":
-        filename = input("Enter a filename: ")
-        epochs = int(input("Input epochs: "))
-        autoencoder(f"{filename}.csv", epochs)
-# -------------------------------------------------------------------------------------------------------------------------
-
-    if command == "anomaly":
-        model_name = input("Enter a model name: ")
-        filename = model_name.split("_")[0]
-        cut_pose = False
-
-        if not filename in memory:
-            memory[filename] = []
-            if input("Face landmarks? (y/n): ") == "y":
-                face_landmarks = True
-            else: face_landmarks = False
-            memory[filename].append(face_landmarks)
-            if input("Pose landmarks? (y/n): ") == "y": 
-                pose_landmarks = True
-                if input("Do you want use cutting version? (y/n): ") == "y":
-                    cut_pose = True
-            else: pose_landmarks = False
-            memory[filename].append(pose_landmarks)
-            if input("right hand landmarks? (y/n): ") == "y":
-                right_hand_landmarks = True
-            else: right_hand_landmarks = False
-            memory[filename].append(right_hand_landmarks)
-            if input("left hand landmarks? (y/n): ") == "y":
-                left_hand_landmarks = True
-            else: left_hand_landmarks = False
-            memory[filename].append(left_hand_landmarks)
-        
-        realtime_anomaly_detect(f"models/{model_name}.pkl", face_landmarks=memory[filename][0], pose_landmarks=memory[filename][1], right_hand_landmarks=memory[filename][2], left_hand_landmarks=memory[filename][3], pose_cut=cut_pose)
-# -------------------------------------------------------------------------------------------------------------------------
-    
-    if command == "timeraw autoencode":
-        filename = input("Enter a filename: ")
-        epochs = int(input("Input epochs: "))
-        neighbors = []
-        while True:
-            neighbor = input("Enter number of neighbors: ")
-            try:
-                neighbors.append(int(neighbor))
-            except:
-                break
-        train_size = float(input("train size: "))
-        autoencode_timelaps(f"{filename}.csv", epochs, train_size=train_size, num_neighboor_frames=neighbors)
-# -------------------------------------------------------------------------------------------------------------------------
-
-    if command == "timeraw anomaly":
-        model_name = input("Enter a model name: ")
-        filename = model_name.split("_")[1]
-        cut_pose = False
-
-        if not filename in memory:
-            memory[filename] = []
-            if input("Face landmarks? (y/n): ") == "y":
-                face_landmarks = True
-            else: face_landmarks = False
-            memory[filename].append(face_landmarks)
-            if input("Pose landmarks? (y/n): ") == "y": 
-                pose_landmarks = True
-                if input("Do you want use cutting version? (y/n): ") == "y":
-                    cut_pose = True
-            else: pose_landmarks = False
-            memory[filename].append(pose_landmarks)
-            if input("right hand landmarks? (y/n): ") == "y":
-                right_hand_landmarks = True
-            else: right_hand_landmarks = False
-            memory[filename].append(right_hand_landmarks)
-            if input("left hand landmarks? (y/n): ") == "y":
-                left_hand_landmarks = True
-            else: left_hand_landmarks = False
-            memory[filename].append(left_hand_landmarks)
-        
-        neighbors = []
-        while True:
-            neighbor = input("Enter number of neighbors: ")
-            try:
-                neighbors.append(int(neighbor))
-            except:
-                break
-        anomaly_rowtime(f"models/{model_name}.pkl", face_landmarks=memory[filename][0], pose_landmarks=memory[filename][1], right_hand_landmarks=memory[filename][2], left_hand_landmarks=memory[filename][3], cut_pose=cut_pose, num_neighboor_frames=neighbors)
-
+# for timelaps anomaly detect
+for cam in CAM_LIST:
+    for object in OBJECTS:
+        X = load_data(f"{PATH_TO_DATA}/{cam}/{object}/normal", "mp4")
+        model_name = f"{PATH_TO_DATA}/{cam}/{object}/model_time.pkl"
+        for x in X:
+            anomaly_rowtime(model_name,
+                            source=x,
+                            path_to_metadata=f"{PATH_TO_DATA}/{cam}/{object}/model_time.json",
+                            func_to_coef=find_max_med,
+                            pose_landmarks=True,
+                            pose_cut=True,
+                            num_neighboor_frames=NUMS_NEIGBOOR)
