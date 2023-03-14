@@ -7,7 +7,7 @@ from tools.utils.back import find_max_med
 PATH_TO_DATA = "anomaly_data"
 CAM_LIST = ("CAM1", "CAM2", "IR")
 OBJECTS = ("Andrey", "Artyom", "Pirog", "Vladimir")
-NUMS_NEIGBOOR = [-12, -10, -8, -6, -4,-2]
+NUMS_NEIGBOOR = [-12, -10, -8, -6, -4, -2]
 
 
 # for record data
@@ -92,9 +92,9 @@ for cam in CAM_LIST:
         model_name = f"{PATH_TO_DATA}/{cam}/{object}/model_time.pkl"
         for x in X:
             anomaly_rowtime(model_name,
+                            num_neighboor_frames=NUMS_NEIGBOOR,
                             source=x,
                             path_to_metadata=f"{PATH_TO_DATA}/{cam}/{object}/model_time.json",
                             func_to_coef=find_max_med,
                             pose_landmarks=True,
-                            pose_cut=True,
-                            num_neighboor_frames=NUMS_NEIGBOOR)
+                            pose_cut=True)

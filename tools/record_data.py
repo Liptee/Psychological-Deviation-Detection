@@ -18,7 +18,7 @@ def record_data(output_file: str,
                 left_hand_landmarks: bool = False,
                 right_hand_landmarks: bool = False,
                 pose_cut: bool = False,
-                class_name = None,
+                class_name: str = None,
                 source = 0):
     """
         This function extracts from webcam frames Action Units and 
@@ -96,3 +96,6 @@ def record_data(output_file: str,
             cv2.imshow('Raw Webcam Feed', frame)
             if cv2.waitKey(10) & 0xFF == ord('q'):
                 break
+
+    cap.release()
+    cv2.destroyAllWindows()
